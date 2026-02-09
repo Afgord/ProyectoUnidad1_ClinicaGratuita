@@ -69,7 +69,7 @@ create table if not exists medicamentos(
 create table if not exists tratamientos_medicamentos(
     id_tratamiento int not null,
     id_medicamento int not null,
-    indicaciones VARCHAR(255) NOT NULL,
+    indicaciones text NOT NULL,
     primary key (id_tratamiento, id_medicamento),
     
     foreign key (id_tratamiento)
@@ -144,6 +144,19 @@ BEGIN
         SIGNAL SQLSTATE '45000' 
         SET MESSAGE_TEXT = 'Error: No se puede agendar una cita en una fecha pasada.';
     END IF;
+    
+    IF NOT (
+		(NEW.hora >= '07:00:00' AND NEW.hora <= '13:00:00') OR
+        (NEW.hora >= '15:00:00' AND NEW.hora <= '19:00:00')
+    ) THEN
+		signal sqlstate '45000'
+        set message_text = 'Solo se atiende de 7 AM - 1 PM y 3 PM - 7 PM.';
+	END IF;
+    
+    if weekday(new.fecha) >= 5 then
+		signal sqlstate '45000'
+        set message_text = 'Solo hay consultas los días Lunes a Viernes.';
+	end if;
 END //
 
 DELIMITER ;
@@ -190,3 +203,7 @@ VALUES (1, 2, 'Tomar 1 cápsula cada 8 horas');
 
 -- 6. Ver la Receta Final (Prueba de Vista 2)
 SELECT * FROM vista_receta_completa;
+
+-- Suponiendo que el próximo sábado es 2024-05-25 (ajusta a una fecha de sábado)
+INSERT INTO citas_medicas (id_paciente, id_doctor, fecha, hora, motivo_consulta) 
+VALUES (1, 1, '2026-02-14', '15:00:00', 'Revisión general');
