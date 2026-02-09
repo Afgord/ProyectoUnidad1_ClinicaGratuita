@@ -1,0 +1,42 @@
+Proyecto Unidad 1 - Primer Avance
+Requisitos de finalización
+Abrió: viernes, 27 de septiembre de 2024, 02:00
+Cierre: miércoles, 11 de febrero de 2026, 18:00
+
+Indicaciones de Proyecto Unidad 1 – Primer Avance
+
+Cada equipo estará conformado por 3 integrantes y los proyectos serán asignados de manera aleatoria.
+📂 Entregables obligatorios:
+
+    Modelo Entidad–Relación (MER) de la base de datos.
+
+    Modelo Relacional (MR) de la base de datos.
+
+    Script SQL de creación de la base de datos (incluyendo el comando CREATE DATABASE).
+
+        Pueden apoyarse en el asistente de MySQL Workbench para generarlo.
+
+    Diagrama de la base de datos generado por el asistente de MySQL Workbench.
+
+    Storyboard del sistema con información de muestra, siguiendo la misma metodología utilizada en la materia de Diseño de Software.
+
+    Navegación entre interfaces claramente representada (flujo de pantallas).
+
+    Uso de controles adecuados según el contenido a mostrar o interactuar (por ejemplo: JLabel, JTextField, JTable, etc.).
+
+⚠️ Nota importante:
+Si el proyecto no incluye alguno de los entregables anteriores, no será calificado.
+
+✅ Recomendaciones
+
+    Organización del equipo: distribuyan las tareas para que todos aporten de forma equilibrada (por ejemplo, uno se enfoca en MER/MR, otro en SQL y diagrama, otro en el storyboard e interfaces).
+
+    Consistencia: asegúrense de que lo definido en el MER se refleje correctamente en el MR y que el script coincida con ambos.
+
+    Claridad visual: el storyboard debe mostrar no solo pantallas, sino también la interacción entre ellas, con flechas o diagramas que representen la navegación.
+
+    Uso de ejemplos: utilicen datos ficticios realistas (nombres, direcciones, teléfonos, etc.) para que el sistema luzca completo y comprensible.
+
+    Controles apropiados: piensen siempre en la mejor forma de mostrar la información. Ejemplo: una lista de alimentos donados debería representarse en una tabla, no en un campo de texto.
+
+    Revisión final: antes de entregar, verifiquen que todos los puntos solicitados estén incluidos y bien organizados en un solo documento/carpeta.
