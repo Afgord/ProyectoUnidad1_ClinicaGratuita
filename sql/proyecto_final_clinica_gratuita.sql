@@ -295,37 +295,47 @@ delimiter //
 		order by nombre ASC;
 	end //
     
-	CREATE PROCEDURE sp_buscar_paciente(IN param_busqueda VARCHAR(100))
-	BEGIN
-		SELECT id_paciente, nombre, edad, sexo, email
-		FROM pacientes
-		WHERE nombre LIKE CONCAT('%', param_busqueda, '%') 
-		OR id_paciente = param_busqueda;
-	END //
+    -- Este SP nos permite buscar un paciente por nombre o su ID
+	create procedure sp_buscar_paciente(IN param_busqueda VARCHAR(100))
+	begin
+		select id_paciente, nombre, edad, sexo, email
+		from pacientes
+		where nombre LIKE CONCAT('%', param_busqueda, '%') 
+		or id_paciente = param_busqueda;
+	end //
     
-	CREATE PROCEDURE sp_obtener_detalle_paciente(IN param_id_paciente INT)
-	BEGIN
-		SELECT * FROM pacientes WHERE id_paciente = param_id_paciente;
-	END //
-
-	CREATE PROCEDURE sp_actualizar_paciente(
-		IN param_id_paciente INT,
-		IN param_direccion VARCHAR(100),
-		IN param_telefono VARCHAR(10),
-		IN param_email VARCHAR(100)
+    -- Un SP sencillo para obtener los datos de un paciente según su ID
+	create procedure sp_obtener_detalle_paciente(IN param_id_paciente INT)
+	begin
+		select * from pacientes 
+        where id_paciente = param_id_paciente;
+	end //
+	
+    -- Este SP nos permite actualizar los datos de un paciente
+    -- recibiendo como parámetros de entrada su ID, su dirección,
+    -- su teléfono y su email.
+	create procedure sp_actualizar_paciente(
+		in param_id_paciente int,
+		in param_direccion VARCHAR(100),
+		in param_telefono VARCHAR(10),
+		in param_email VARCHAR(100)
 	)
-	BEGIN
-		UPDATE pacientes 
-		SET direccion = param_direccion, 
+	begin
+		update pacientes 
+		set direccion = param_direccion, 
 			telefono = param_telefono, 
 			email = param_email
-		WHERE id_paciente = param_id_paciente;
-	END //
+		where id_paciente = param_id_paciente;
+	end //
 
 	/**
 	* Ahora procedemos a crear algunos triggers para monitorear la integridad de
 	* los datos y las operaciones que se realizarán en nuestra BD
 	*/
+    
+    -- Este trigger es el que nos ayudará a validar que las fechas/horas ingresadas
+    -- por el usuario sean las correctas y que no se puedan seleccionar fechas
+    --  del pasado
 	create trigger tr_validar_fecha_cita
 	before insert on citas_medicas
 	for each row
@@ -348,7 +358,7 @@ delimiter //
 		end if;
 	end //
     
-    -- TRIGGER PARA NORMALIZACIÓN (No cambia el diagrama, solo el texto)
+    -- Creamos un trigger para guardar los email de los pacientes en minúsculas
 	create trigger tr_normalizar_email_paciente
 	before update on pacientes
 	for each row
@@ -357,6 +367,8 @@ delimiter //
 		set new.email = LOWER(new.email);
 	end //
     
+    -- Creamos una función para llevar la contabilidad de cada consulta que ha
+    -- tenido un paciente
 	create function fn_total_consultas_paciente(param_id_paciente int) 
 	returns int
 	deterministic
