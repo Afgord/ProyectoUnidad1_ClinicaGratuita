@@ -12,8 +12,8 @@ create table if not exists pacientes(
     sexo enum('Masculino','Femenino') not null,
     direccion varchar(100) not null,
     -- validamos que el email sea único
-    email varchar(100) unique,
-    telefono varchar(20),
+    email varchar(100) unique not null,
+    telefono varchar(10) not null,
     
     -- Ingresamos validaciones a los datos email y teléfono
     constraint validar_email_paciente check (email like '%_@__%.__%'),
@@ -23,8 +23,8 @@ create table if not exists pacientes(
 create table if not exists doctores(
 	id_doctor int auto_increment primary key,
     nombre varchar(100) not null,
-    email varchar(100) unique,
-    telefono varchar(20) unique,
+    email varchar(100) unique not null,
+    telefono varchar(10) unique not null,
     especialidad varchar(60) not null,
     
     -- Ingresamos validaciones a los datos email y teléfono
@@ -69,7 +69,7 @@ create table if not exists medicamentos(
 create table if not exists tratamientos_medicamentos(
     id_tratamiento int not null,
     id_medicamento int not null,
-    indicaciones VARCHAR(255) NOT NULL,
+    indicaciones text NOT NULL,
     primary key (id_tratamiento, id_medicamento),
     
     foreign key (id_tratamiento)
@@ -84,6 +84,31 @@ create table if not exists tratamientos_medicamentos(
 /*
 	Vamos a crear algunas vistas que se utilizarán dentro de Java
 */
+
+-- VISTA CORREGIDA PARA EL HISTORIAL (Usando tus tablas reales)
+CREATE OR REPLACE VIEW vista_historial_paciente AS
+SELECT 
+    p.id_paciente,
+    p.nombre AS nombre_paciente,
+    c.fecha,
+    c.motivo_consulta,
+    IFNULL(t.descripcion, 'Sin diagnóstico registrado') AS diagnostico
+FROM citas_medicas c
+JOIN pacientes p ON c.id_paciente = p.id_paciente
+LEFT JOIN tratamientos t ON c.id_cita = t.id_cita
+ORDER BY c.fecha DESC;
+
+-- Creamos una vista para consultar todos los pacientes registrados
+-- en la clínica
+create or replace view vista_directorio_pacientes as
+select
+    id_paciente, 
+    nombre, 
+    email,
+    telefono
+from pacientes
+order by nombre asc;
+
 -- Vista para el Dashboard Principal
 create view vista_agenda_diaria as
 select
@@ -95,98 +120,251 @@ select
     c.estado
 from citas_medicas c
 join pacientes p on c.id_paciente = p.id_paciente
-where c.estado != 'cancelada'
+where c.fecha = CURDATE() and
+c.estado != 'cancelada'
 order by c.hora asc;
 
 -- Vista para la Pantalla de Receta
-CREATE VIEW vista_receta_completa AS
-SELECT 
+create view vista_receta_completa AS
+select 
     t.id_cita,
-    p.nombre AS paciente,
-    d.nombre AS doctor,
-    m.nombre AS medicamento,
+    p.nombre as paciente,
+    d.nombre as doctor,
+    m.nombre as medicamento,
     tm.indicaciones,
     t.duracion AS dias_tratamiento
-FROM tratamientos t
-JOIN citas_medicas c ON t.id_cita = c.id_cita
-JOIN pacientes p ON c.id_paciente = p.id_paciente
-JOIN doctores d ON c.id_doctor = d.id_doctor
-JOIN tratamientos_medicamentos tm ON t.id_tratamiento = tm.id_tratamiento
+from tratamientos t
+join citas_medicas c on t.id_cita = c.id_cita
+join pacientes p on c.id_paciente = p.id_paciente
+join doctores d on c.id_doctor = d.id_doctor
+join tratamientos_medicamentos tm on t.id_tratamiento = tm.id_tratamiento
 JOIN medicamentos m ON tm.id_medicamento = m.id_medicamento;
 
-DELIMITER //
+-- Creamos una vista para seleccionar el doctor a la hora de programar cita
+create view vista_seleccion_doctor as
+select id_doctor, CONCAT(nombre, ' - ', especialidad) as inf_doctor
+from doctores;
 
-CREATE PROCEDURE sp_finalizar_consulta(
-    IN _id_cita INT,
-    IN _descripcion TEXT,
-    IN _duracion INT
-)
-BEGIN
-    -- Insertamos el tratamiento
-    INSERT INTO tratamientos (id_cita, descripcion, duracion) 
-    VALUES (_id_cita, _descripcion, _duracion);
+/**
+	Ahora generemos los SP, triggers y functions que se encargarán de interactuar con Java para
+    agregar, actualizar o eliminar datos en nuestra BD
+*/
+
+delimiter //
+	-- Creamos el SP sp_registrar_pacientes, el cual se encargará de registrar nuevos pacientes
+	create procedure sp_registrar_paciente(
+		IN param_nombre varchar(100),
+		IN param_edad int,
+		IN param_sexo enum('Masculino','Femenino'),
+		IN param_direccion varchar(100),
+		IN param_email varchar(100),
+		IN param_telefono varchar(10)
+	)
+	begin
+		declare exit handler for sqlexception
+        begin
+			rollback;
+            signal sqlstate '45000' set message_text = 'ERROR: El paciente ya está registrado.';
+		end;
+        
+        start transaction;
+			insert into pacientes (nombre, edad, sexo, direccion, email, telefono)
+			values (param_nombre, param_edad, param_sexo, param_direccion, param_email, param_telefono);
+		commit;
+	end //
+
+
+	-- Creamos el SP sp_registrar_doctor, el cual se encargará de agregar nuevos doctores
+	create procedure sp_registrar_doctor(
+		IN param_nombre varchar(100),
+		IN param_email varchar(100),
+		IN param_telefono varchar(10),
+		IN param_especialidad varchar(60)
+	)
+	begin
+		declare exit handler for sqlexception
+		begin
+			rollback;
+			signal sqlstate '45000' set message_text = 'ERROR: El doctor ya está registrado';
+		end;
     
-    -- Actualizamos el estado de la cita automáticamente
-    UPDATE citas_medicas 
-    SET estado = 'completada' 
-    WHERE id_cita = _id_cita;
-END //
+		start transaction;
+			insert into doctores (nombre, email, telefono, especialidad)
+			values (param_nombre, param_email, param_telefono, param_especialidad);
+		commit;
+	end //
 
-DELIMITER ;
 
-DELIMITER //
+	-- Creamos el SP sp_agendar_cita, el cual nos permitirá agendar una nueva
+	-- cita médica a un paciente
+	create procedure sp_agendar_cita(
+		in param_id_paciente int,
+		in param_id_doctor int,
+		in param_fecha date,
+		in param_hora time,
+		in param_motivo text
+	)
+	begin
+	-- Declaramos una variable tempral cita_existente de tipo int para validar
+    -- fechas en que un doctor ya tenga cita programada. 
+		declare cita_existente int;
+    
+		-- declaramos un exit handler para excepciones de sql
+		declare exit handler for sqlexception
+			begin
+				rollback;
+				signal sqlstate '45000' set message_text = 'ERROR, no se pudo agendar la cita.';
+			end;
+        
+			-- comenzamos la transacción de agendar una nueva cita
+			start transaction;
+        
+			-- realizamos la consulta para validar si una cita existe. en este caso revisamos en la
+			-- tabla citas_medicas el id del doctor, la fecha, hora y estado de una cita.
+			select count(*) into cita_existente
+			from citas_medicas
+			where id_doctor = param_id_doctor
+			and fecha = param_fecha
+			and hora = param_hora
+			and estado != 'cancelada';
+        
+			-- si la comparación no nos regresa 0 quiere decir que está ocupada esa fecha.
+			if cita_existente > 0 then
+				signal sqlstate '45000' set message_text = 'Cita existente en esa fecha.  Favor de seleccionar otra.';
+			else
+				-- de estar disponible esa fecha se procede a capturar la nueva cita.
+				insert into citas_medicas (id_paciente, id_doctor, fecha, hora, motivo_consulta)
+				values (param_id_paciente, param_id_doctor, param_fecha, param_hora, param_motivo);
+				commit;
+			end if;
+	end //
 
-CREATE TRIGGER tr_validar_fecha_cita
-BEFORE INSERT ON citas_medicas
-FOR EACH ROW
-BEGIN
-    IF NEW.fecha < CURDATE() THEN
-        SIGNAL SQLSTATE '45000' 
-        SET MESSAGE_TEXT = 'Error: No se puede agendar una cita en una fecha pasada.';
-    END IF;
-END //
 
-DELIMITER ;
+	-- Creamos el SP sp_finalizar_consulta el cual nos permitirá guardar los cambios
+	-- una vez finalice la consulta de un paciente
+	create procedure sp_finalizar_consulta(
+		in param_id_cita int,
+		in param_descripcion text,
+		in param_duracion int
+	)
+	begin
+		declare exit handler for sqlexception
+		begin
+			rollback;
+			signal sqlstate '45000' set message_text = 'Error al finalizar la consulta.';
+		end;
+    
+		start transaction;
+		-- Insertamos los datos del tratamiento
+			insert into tratamientos (id_cita, descripcion, duracion) 
+			values (param_id_cita, param_descripcion, param_duracion);
+    
+			-- Actualizamos el estado de la cita automáticamente
+			update citas_medicas 
+			set estado = 'completada' 
+			where id_cita = param_id_cita;
+        
+			select last_insert_id() as id_tratamiento;
+		commit;
+	end //
 
-DELIMITER //
+	-- Creamos el SP sp_tratamiento_medicamento el cual nos permitirá documentar
+	-- el o los medicamentos requeridos para el tratamiento, en caso de ser necesarios.
+	create procedure sp_tratamiento_medicamento(
+		in param_id_tratamiento int,
+		in param_id_medicamento int,
+		in param_indicaciones text
+	)
 
-CREATE FUNCTION fn_total_consultas_paciente(_id_paciente INT) 
-RETURNS INT
-DETERMINISTIC
-BEGIN
-    DECLARE total INT;
-    SELECT COUNT(*) INTO total FROM citas_medicas 
-    WHERE id_paciente = _id_paciente AND estado = 'completada';
-    RETURN total;
-END //
+	begin
+		declare exit handler for sqlexception
+		begin
+			signal sqlstate '45000' set message_text = 'ERROR: El medicamento ya se encuentra en la receta o los datos son inválidos.';
+		end;
+    
+		insert into tratamientos_medicamentos(id_tratamiento, id_medicamento, indicaciones)
+		values (param_id_tratamiento, param_id_medicamento, param_indicaciones);
+	end //
 
-DELIMITER ;
+	-- Ahora creamos un sp para listar los medicamentos en la consulta médica
+	create procedure sp_listar_medicamentos()
+	begin
+		-- Seleccionamos ID (para lógica interna) y Nombre (para mostrar al usuario)
+		select id_medicamento, nombre 
+		from medicamentos 
+		order by nombre ASC;
+	end //
+    
+	CREATE PROCEDURE sp_buscar_paciente(IN param_busqueda VARCHAR(100))
+	BEGIN
+		SELECT id_paciente, nombre, edad, sexo, email
+		FROM pacientes
+		WHERE nombre LIKE CONCAT('%', param_busqueda, '%') 
+		OR id_paciente = param_busqueda;
+	END //
+    
+	CREATE PROCEDURE sp_obtener_detalle_paciente(IN param_id_paciente INT)
+	BEGIN
+		SELECT * FROM pacientes WHERE id_paciente = param_id_paciente;
+	END //
 
--- 1. Insertar datos maestros
-INSERT INTO pacientes (nombre, edad, sexo, direccion, email, telefono) 
-VALUES ('Juan Pérez', 30, 'Masculino', 'Av. Siempre Viva 123', 'juan@mail.com', '1234567890');
+	CREATE PROCEDURE sp_actualizar_paciente(
+		IN param_id_paciente INT,
+		IN param_direccion VARCHAR(100),
+		IN param_telefono VARCHAR(10),
+		IN param_email VARCHAR(100)
+	)
+	BEGIN
+		UPDATE pacientes 
+		SET direccion = param_direccion, 
+			telefono = param_telefono, 
+			email = param_email
+		WHERE id_paciente = param_id_paciente;
+	END //
 
-INSERT INTO doctores (nombre, email, telefono, especialidad) 
-VALUES ('Dra. García', 'garcia@clinica.com', '0987654321', 'Pediatría');
+	/**
+	* Ahora procedemos a crear algunos triggers para monitorear la integridad de
+	* los datos y las operaciones que se realizarán en nuestra BD
+	*/
+	create trigger tr_validar_fecha_cita
+	before insert on citas_medicas
+	for each row
+	begin
+		if new.fecha < CURDATE() then
+			signal sqlstate '45000' 
+			set message_text = 'Error: No se puede agendar una cita en una fecha pasada.';
+		end if;
+    
+		if not (
+			(new.hora >= '07:00:00' and new.hora <= '13:00:00') OR
+			(new.hora >= '15:00:00' and new.hora <= '19:00:00')
+		) then
+			signal sqlstate '45000' set message_text = 'Solo se atiende de 7 AM - 1 PM y 3 PM - 7 PM.';
+		end if;
+    
+		if weekday(new.fecha) >= 5 then
+			signal sqlstate '45000'
+			set message_text = 'Solo hay consultas los días Lunes a Viernes.';
+		end if;
+	end //
+    
+    -- TRIGGER PARA NORMALIZACIÓN (No cambia el diagrama, solo el texto)
+	create trigger tr_normalizar_email_paciente
+	before update on pacientes
+	for each row
+	begin
+		-- Forzamos que el email siempre sea minúsculas al actualizar
+		set new.email = LOWER(new.email);
+	end //
+    
+	create function fn_total_consultas_paciente(param_id_paciente int) 
+	returns int
+	deterministic
+	begin
+		declare total int;
+		select COUNT(*) into total from citas_medicas 
+		where id_paciente = param_id_paciente and estado = 'completada';
+		return total;
+	end //
 
-INSERT INTO medicamentos (nombre) 
-VALUES ('Ibuprofeno 400mg'), ('Amoxicilina 500mg');
-
--- 2. Agendar una cita (Prueba del Trigger)
--- Tip: Si pones una fecha pasada, verás el error que configuraste.
-INSERT INTO citas_medicas (id_paciente, id_doctor, fecha, hora, motivo_consulta) 
-VALUES (1, 1, CURDATE(), '10:00:00', 'Dolor de garganta y fiebre');
-
--- 3. Ver el Dashboard (Prueba de Vista 1)
-SELECT * FROM vista_agenda_diaria;
-
--- 4. Finalizar Consulta (Prueba del SP)
--- Esto creará el tratamiento y cambiará el estado de la cita a 'completada'
-CALL sp_finalizar_consulta(1, 'Infección leve de garganta. Reposo por 3 días.', 3);
-
--- 5. Agregar medicamentos a la receta (Tabla N:M)
-INSERT INTO tratamientos_medicamentos (id_tratamiento, id_medicamento, indicaciones) 
-VALUES (1, 2, 'Tomar 1 cápsula cada 8 horas');
-
--- 6. Ver la Receta Final (Prueba de Vista 2)
-SELECT * FROM vista_receta_completa;
+delimiter ;
