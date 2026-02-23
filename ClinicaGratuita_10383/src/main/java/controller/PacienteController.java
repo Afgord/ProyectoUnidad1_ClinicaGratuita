@@ -16,59 +16,83 @@ import model.Paciente;
 public class PacienteController {
 
     private final IPacienteDAO pacienteDAO;
+    private String ultimo_mensaje = "";
 
     public PacienteController() {
         this.pacienteDAO = new PacienteDAO();
     }
 
+    public String getUltimo_mensaje() {
+        return ultimo_mensaje;
+    }
+
     /**
      * Regla de Negocio: Validar datos antes de enviarlos al DAO. Retornamos un
-     * String para que la Vista (JFrame) lo muestre en un JOptionPane.
+     * boolean para que la Vista (JFrame) lo muestre en un JOptionPane.
      */
     public boolean insertarPaciente(String nombre, int edad, String sexo, String direccion, String email, String telefono) {
 
-        // 1. Validaciones de presencia (No vacíos)
-        if (nombre.trim().isEmpty() || direccion.trim().isEmpty() || email.trim().isEmpty() || telefono.trim().isEmpty()) {
-            System.err.println("Error: Todos los campos obligatorios deben ser completados.");
+        try {
+
+            if (nombre == null || nombre.trim().isEmpty()
+                    || direccion == null || direccion.trim().isEmpty()
+                    || email == null || email.trim().isEmpty()
+                    || telefono == null || telefono.trim().isEmpty()) {
+                ultimo_mensaje = "Todos los campos son obligatorios.";
+                return false;
+            }
+
+            if (edad < 0 || edad > 120) {
+                ultimo_mensaje = "Edad fuera de rango (0–120).";
+                return false;
+            }
+
+            if (!sexo.equals("Masculino") && !sexo.equals("Femenino")) {
+                ultimo_mensaje = "Sexo inválido. Use Masculino o Femenino.";
+                return false;
+            }
+
+            String regex_email = "^[\\w.+-]+@[\\w.-]+\\.[A-Za-z]{2,}$";
+            if (!email.matches(regex_email)) {
+                ultimo_mensaje = "Formato de correo inválido.";
+                return false;
+            }
+
+            if (!telefono.matches("^[0-9]{10}$")) {
+                ultimo_mensaje = "El teléfono debe contener 10 dígitos.";
+                return false;
+            }
+
+            Paciente paciente = new Paciente();
+            paciente.setNombre(nombre.trim());
+            paciente.setEdad(edad);
+            paciente.setSexo(sexo);
+            paciente.setDireccion(direccion.trim());
+            paciente.setEmail(email.trim().toLowerCase());
+            paciente.setTelefono(telefono.trim());
+
+            boolean ok = pacienteDAO.insertar(paciente);
+
+            ultimo_mensaje = ok ? "Paciente registrado correctamente." : "No se pudo registrar el paciente.";
+            return ok;
+
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
             return false;
         }
-
-        // 2. Validación de Edad (Lógica coincidente con el CHECK de la DB)
-        if (edad < 0 || edad > 120) {
-            System.err.println("Error: La edad debe ser un rango válido (0-120).");
-            return false;
-        }
-
-        // 3. Validación de Formato de Email (Regex básica)
-        if (!email.contains("@") || !email.contains(".")) {
-            System.err.println("Error: El formato del correo electrónico es incorrecto.");
-            return false;
-        }
-
-        // 4. Validación de Teléfono (Debe ser de 10 dígitos según tu SQL)
-        if (telefono.trim().length() != 10 || !telefono.matches("[0-9]+")) {
-            System.err.println("Error: El teléfono debe tener exactamente 10 dígitos.");
-            return false;
-        }
-
-        // Si pasa las validaciones, creamos el modelo
-        Paciente paciente = new Paciente();
-        paciente.setNombre(nombre.trim());
-        paciente.setEdad(edad);
-        paciente.setSexo(sexo);
-        paciente.setDireccion(direccion.trim());
-        paciente.setEmail(email.trim().toLowerCase());
-        paciente.setTelefono(telefono.trim());
-
-        return pacienteDAO.insertar(paciente);
     }
 
     public Paciente obtenerPorId(int id_paciente) {
-        if (id_paciente <= 0) {
-            System.err.println("Error: El ID debe ser mayor a cero.");
+        try {
+            if (id_paciente <= 0) {
+                ultimo_mensaje = "ID inválido.";
+                return null;
+            }
+            return pacienteDAO.obtenerPorId(id_paciente);
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
             return null;
         }
-        return pacienteDAO.obtenerPorId(id_paciente);
     }
 
     public List<Paciente> obtenerTodos() {
@@ -76,37 +100,63 @@ public class PacienteController {
     }
 
     public boolean actualizar(Paciente paciente) {
-        // Validaciones de negocio antes de llamar al DAO
-        if (paciente.getNombre().trim().isEmpty()
-                || paciente.getDireccion().trim().isEmpty()
-                || paciente.getEmail().trim().isEmpty()) {
-            System.err.println("Error: Hay campos obligatorios vacíos.");
+        try {
+            if (paciente == null) {
+                ultimo_mensaje = "Paciente inválido.";
+                return false;
+            }
+
+            if (paciente.getId_paciente() <= 0) {
+                ultimo_mensaje = "ID inválido.";
+                return false;
+            }
+
+            if (paciente.getDireccion() == null || paciente.getDireccion().trim().isEmpty()
+                    || paciente.getEmail() == null || paciente.getEmail().trim().isEmpty()
+                    || paciente.getTelefono() == null || paciente.getTelefono().trim().isEmpty()) {
+                ultimo_mensaje = "Dirección, email y teléfono son obligatorios.";
+                return false;
+            }
+
+            if (!paciente.getTelefono().matches("^[0-9]{10}$")) {
+                ultimo_mensaje = "Teléfono inválido.";
+                return false;
+            }
+
+            String regex_email = "^[\\w.+-]+@[\\w.-]+\\.[A-Za-z]{2,}$";
+            if (!paciente.getEmail().matches(regex_email)) {
+                ultimo_mensaje = "Formato de correo inválido.";
+                return false;
+            }
+
+            paciente.setDireccion(paciente.getDireccion().trim());
+            paciente.setEmail(paciente.getEmail().trim().toLowerCase());
+            paciente.setTelefono(paciente.getTelefono().trim());
+
+            boolean ok = pacienteDAO.actualizar(paciente);
+            ultimo_mensaje = ok ? "Paciente actualizado." : "No se pudo actualizar.";
+            return ok;
+
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
             return false;
         }
-
-        // Validación de edad (conforme al CHECK de la DB)
-        if (paciente.getEdad() < 0 || paciente.getEdad() > 120) {
-            System.err.println("Error: Edad fuera de rango (0-120).");
-            return false;
-        }
-
-        // Validación de teléfono (regexp '^[0-9]{10}$')
-        if (paciente.getTelefono().trim().length() != 10 || !paciente.getTelefono().matches("[0-9]+")) {
-            System.err.println("Error: El teléfono debe tener 10 dígitos numéricos.");
-            return false;
-        }
-
-        paciente.setNombre(paciente.getNombre().trim());
-        paciente.setEmail(paciente.getEmail().trim().toLowerCase());
-
-        return pacienteDAO.actualizar(paciente);
     }
 
     public boolean eliminar(int id_paciente) {
-        if (id_paciente <= 0) {
-            System.err.println("Error: ID no válido para eliminación.");
+        try {
+            if (id_paciente <= 0) {
+                ultimo_mensaje = "ID inválido.";
+                return false;
+            }
+
+            boolean ok = pacienteDAO.eliminar(id_paciente);
+            ultimo_mensaje = ok ? "Paciente eliminado." : "No se pudo eliminar.";
+            return ok;
+
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
             return false;
         }
-        return pacienteDAO.eliminar(id_paciente);
     }
 }

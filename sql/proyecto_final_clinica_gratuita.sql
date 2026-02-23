@@ -150,8 +150,8 @@ from doctores;
     agregar, actualizar o eliminar datos en nuestra BD
 */
 
-delimiter //
 	-- Creamos el SP sp_registrar_pacientes, el cual se encargará de registrar nuevos pacientes
+delimiter //
 	create procedure sp_registrar_paciente(
 		IN param_nombre varchar(100),
 		IN param_edad int,
@@ -161,6 +161,12 @@ delimiter //
 		IN param_telefono varchar(10)
 	)
 	begin
+		declare exit handler for 1062
+        begin
+			rollback;
+            signal sqlstate '45000' set message_text = 'ERROR: El paciente ya está registrado.';
+		end;
+        
 		declare exit handler for sqlexception
         begin
 			rollback;
@@ -172,9 +178,10 @@ delimiter //
 			values (param_nombre, param_edad, param_sexo, param_direccion, param_email, param_telefono);
 		commit;
 	end //
-
+delimiter ;
 
 	-- Creamos el SP sp_registrar_doctor, el cual se encargará de agregar nuevos doctores
+delimiter //
 	create procedure sp_registrar_doctor(
 		IN param_nombre varchar(100),
 		IN param_email varchar(100),
@@ -193,10 +200,11 @@ delimiter //
 			values (param_nombre, param_email, param_telefono, param_especialidad);
 		commit;
 	end //
-
+delimiter ;
 
 	-- Creamos el SP sp_agendar_cita, el cual nos permitirá agendar una nueva
 	-- cita médica a un paciente
+delimiter //
 	create procedure sp_agendar_cita(
 		in param_id_paciente int,
 		in param_id_doctor int,
@@ -238,10 +246,11 @@ delimiter //
 				commit;
 			end if;
 	end //
-
+delimiter ;
 
 	-- Creamos el SP sp_finalizar_consulta el cual nos permitirá guardar los cambios
 	-- una vez finalice la consulta de un paciente
+delimiter //
 	create procedure sp_finalizar_consulta(
 		in param_id_cita int,
 		in param_descripcion text,
@@ -267,9 +276,11 @@ delimiter //
 			select last_insert_id() as id_tratamiento;
 		commit;
 	end //
+delimiter ;
 
 	-- Creamos el SP sp_tratamiento_medicamento el cual nos permitirá documentar
 	-- el o los medicamentos requeridos para el tratamiento, en caso de ser necesarios.
+delimiter //
 	create procedure sp_tratamiento_medicamento(
 		in param_id_tratamiento int,
 		in param_id_medicamento int,
@@ -285,8 +296,10 @@ delimiter //
 		insert into tratamientos_medicamentos(id_tratamiento, id_medicamento, indicaciones)
 		values (param_id_tratamiento, param_id_medicamento, param_indicaciones);
 	end //
+delimiter ;
 
 	-- Ahora creamos un sp para listar los medicamentos en la consulta médica
+delimiter //
 	create procedure sp_listar_medicamentos()
 	begin
 		-- Seleccionamos ID (para lógica interna) y Nombre (para mostrar al usuario)
@@ -294,8 +307,10 @@ delimiter //
 		from medicamentos 
 		order by nombre ASC;
 	end //
+delimiter ;
     
     -- Este SP nos permite buscar un paciente por nombre o su ID
+delimiter //
 	create procedure sp_buscar_paciente(IN param_busqueda VARCHAR(100))
 	begin
 		select id_paciente, nombre, edad, sexo, email
@@ -303,30 +318,81 @@ delimiter //
 		where nombre LIKE CONCAT('%', param_busqueda, '%') 
 		or id_paciente = param_busqueda;
 	end //
+delimiter ;
     
     -- Un SP sencillo para obtener los datos de un paciente según su ID
+delimiter //
 	create procedure sp_obtener_detalle_paciente(IN param_id_paciente INT)
 	begin
 		select * from pacientes 
         where id_paciente = param_id_paciente;
 	end //
+delimiter ;
 	
     -- Este SP nos permite actualizar los datos de un paciente
     -- recibiendo como parámetros de entrada su ID, su dirección,
     -- su teléfono y su email.
+delimiter //
 	create procedure sp_actualizar_paciente(
 		in param_id_paciente int,
 		in param_direccion VARCHAR(100),
-		in param_telefono VARCHAR(10),
-		in param_email VARCHAR(100)
+		in param_email VARCHAR(100),
+        in param_telefono VARCHAR(10)
+		
 	)
 	begin
-		update pacientes 
-		set direccion = param_direccion, 
-			telefono = param_telefono, 
-			email = param_email
-		where id_paciente = param_id_paciente;
+		DECLARE EXIT HANDLER FOR 1062
+		BEGIN
+			ROLLBACK;
+			SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ERROR: El email ya está registrado.';
+		END;
+        
+        DECLARE EXIT HANDLER FOR SQLEXCEPTION
+		BEGIN
+			ROLLBACK;
+			SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ERROR: No se pudo actualizar el paciente.';
+		END;
+        start transaction;
+			update pacientes 
+			set direccion = param_direccion, 
+				email = param_email,
+				telefono = param_telefono
+			where id_paciente = param_id_paciente;
+			IF ROW_COUNT() = 0 THEN
+				ROLLBACK;
+				SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ERROR: No existe el paciente.';
+			END IF;
+		commit;
 	end //
+delimiter ;
+    
+-- Este SP nos permite actualizar los datos de un doctor
+delimiter //
+	create procedure sp_actualizar_doctor(
+		in param_id_doctor int,
+		in param_nombre varchar(100),
+		in param_email varchar(100),
+		in param_telefono varchar(10),
+		in param_especialidad varchar(60)
+	)
+	begin
+		declare exit handler for sqlexception
+		begin
+			rollback;
+			signal sqlstate '45000' set message_text = 'ERROR: No se pudo actualizar el doctor.';
+		end;
+
+		start transaction;
+		UPDATE doctores SET 
+			nombre = param_nombre,
+			email = param_email,
+			telefono = param_telefono,
+			especialidad = param_especialidad
+		WHERE
+			id_doctor = param_id_doctor;
+		commit;
+	end //
+delimiter ;
 
 	/**
 	* Ahora procedemos a crear algunos triggers para monitorear la integridad de
@@ -336,7 +402,8 @@ delimiter //
     -- Este trigger es el que nos ayudará a validar que las fechas/horas ingresadas
     -- por el usuario sean las correctas y que no se puedan seleccionar fechas
     --  del pasado
-	create trigger tr_validar_fecha_cita
+delimiter //
+	create trigger tr_validar_fecha_cita_insertar
 	before insert on citas_medicas
 	for each row
 	begin
@@ -357,8 +424,34 @@ delimiter //
 			set message_text = 'Solo hay consultas los días Lunes a Viernes.';
 		end if;
 	end //
+delimiter ;
+
+delimiter //
+    create trigger tr_validar_fecha_cita_actualizar
+	before update on citas_medicas
+	for each row
+	begin
+		if new.fecha < CURDATE() then
+			signal sqlstate '45000' 
+			set message_text = 'Error: No se puede agendar una cita en una fecha pasada.';
+		end if;
+    
+		if not (
+			(new.hora >= '07:00:00' and new.hora <= '13:00:00') OR
+			(new.hora >= '15:00:00' and new.hora <= '19:00:00')
+		) then
+			signal sqlstate '45000' set message_text = 'Solo se atiende de 7 AM - 1 PM y 3 PM - 7 PM.';
+		end if;
+    
+		if weekday(new.fecha) >= 5 then
+			signal sqlstate '45000'
+			set message_text = 'Solo hay consultas los días Lunes a Viernes.';
+		end if;
+	end //
+delimiter ;
     
     -- Creamos un trigger para guardar los email de los pacientes en minúsculas
+delimiter //
 	create trigger tr_normalizar_email_paciente
 	before update on pacientes
 	for each row
@@ -366,9 +459,20 @@ delimiter //
 		-- Forzamos que el email siempre sea minúsculas al actualizar
 		set new.email = LOWER(new.email);
 	end //
+delimiter ;
+
+DELIMITER //
+	CREATE TRIGGER tr_normalizar_email_doctor
+	BEFORE UPDATE ON doctores
+	FOR EACH ROW
+	BEGIN
+		SET NEW.email = LOWER(NEW.email);
+	END//
+DELIMITER ;
     
     -- Creamos una función para llevar la contabilidad de cada consulta que ha
     -- tenido un paciente
+delimiter //
 	create function fn_total_consultas_paciente(param_id_paciente int) 
 	returns int
 	deterministic

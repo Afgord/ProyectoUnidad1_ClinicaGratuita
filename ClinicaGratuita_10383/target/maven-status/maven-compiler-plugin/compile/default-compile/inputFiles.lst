@@ -1,2 +1,35 @@
-C:\Users\Afgord\Documents\NetBeansProjects\ClinicaGratuita_10383\src\main\java\com\mycompany\clinicagratuita_10383\ClinicaGratuita_10383.java
-C:\Users\Afgord\Documents\NetBeansProjects\ClinicaGratuita_10383\src\main\java\com\mycompany\clinicagratuita_10383\config\ConexionDB.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\com\mycompany\clinicagratuita_10383\ClinicaGratuita_10383.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\com\mycompany\clinicagratuita_10383\config\ConexionDB.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\controller\Agenda_DiariaController.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\controller\Cita_MedicaController.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\controller\DoctorController.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\controller\MedicamentoController.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\controller\PacienteController.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\controller\RecetaController.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\controller\Tratamiento_MedicamentoController.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\controller\TratamientoController.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\dao\Agenda_DiariaDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\dao\Cita_MedicaDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\dao\DoctorDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\dao\MedicamentoDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\dao\PacienteDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\dao\RecetaDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\dao\Tratamiento_MedicamentoDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\dao\TratamientoDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\interfaces\IAgenda_DiariaDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\interfaces\ICita_MedicaDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\interfaces\IDoctorDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\interfaces\IMedicamentoDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\interfaces\IPacienteDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\interfaces\IRecetaDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\interfaces\ITratamiento_MedicamentoDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\interfaces\ITratamientoDAO.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\model\Agenda_Diaria.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\model\Cita_Medica.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\model\Doctor.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\model\Medicamento.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\model\Paciente.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\model\Receta.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\model\Tratamiento.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\model\Tratamiento_Medicamento.java
+C:\Users\Afgord\Documents\Enero-Mayo2026\Base de datos avanzada\Unidad 1\Proyecto Final\ClinicaGratuita_10383\src\main\java\test\MainPruebasBackendCompleto.java

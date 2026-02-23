@@ -58,7 +58,7 @@ public class Cita_Medica {
         this.hora = hora;
     }
 
-    public String getMotivo_consulta() {
+    public String getMotivo_Consulta() {
         return motivo_consulta;
     }
 

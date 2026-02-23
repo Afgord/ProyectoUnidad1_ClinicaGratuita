@@ -23,26 +23,40 @@ public class TratamientoDAO implements ITratamientoDAO {
 
     @Override
     public boolean insertar(Tratamiento tratamiento) {
-        String sql = "{call sp_finalizar_consulta(?, ?, ?)}";
-        try (Connection con = ConexionDB.getConnection()) {
-            try (CallableStatement cs = con.prepareCall(sql)) {
+        String sql = "{CALL sp_finalizar_consulta(?, ?, ?)}";
 
-                cs.setInt(1, tratamiento.getId_cita());
-                cs.setString(2, tratamiento.getDescripcion());
-                cs.setInt(3, tratamiento.getDuracion());
-                return cs.executeUpdate() > 0;
+        try (Connection con = ConexionDB.getConnection(); CallableStatement cs = con.prepareCall(sql)) {
+
+            cs.setInt(1, tratamiento.getId_cita());
+            cs.setString(2, tratamiento.getDescripcion());
+            cs.setInt(3, tratamiento.getDuracion());
+
+            boolean tiene_resultset = cs.execute();
+
+            if (!tiene_resultset) {
+                throw new RuntimeException("Error: No se recibió el ID del tratamiento.");
             }
+
+            if (tiene_resultset) {
+                try (ResultSet rs = cs.getResultSet()) {
+                    if (rs.next()) {
+                        int id_generado = rs.getInt("id_tratamiento");
+                        tratamiento.setId_tratamiento(id_generado);
+                    }
+                }
+            }
+
+            return true;
+
         } catch (SQLException e) {
-            System.err.println("Error al insertar el tratamiento: " + e.getMessage());
-            return false;
+            throw new RuntimeException("Error al finalizar consulta: " + e.getMessage(), e);
         }
     }
 
     @Override
     public Tratamiento obtenerPorId(int id_tratamiento) {
-        String sql = "SELECT id_tratamiento, id_cita, descripcion, "
-                + "duracion FROM tratamientos WHERE id_tratamiento = ?";
-        Tratamiento tratamiento = null;
+        String sql = "SELECT id_tratamiento, id_cita, descripcion, duracion "
+                + "FROM tratamientos WHERE id_tratamiento = ?";
 
         try (Connection con = ConexionDB.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
 
@@ -50,22 +64,27 @@ public class TratamientoDAO implements ITratamientoDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    tratamiento = new Tratamiento();
+                    Tratamiento tratamiento = new Tratamiento();
                     tratamiento.setId_tratamiento(rs.getInt("id_tratamiento"));
                     tratamiento.setId_cita(rs.getInt("id_cita"));
                     tratamiento.setDescripcion(rs.getString("descripcion"));
                     tratamiento.setDuracion(rs.getInt("duracion"));
+                    return tratamiento;
                 }
             }
+
+            return null;
+
         } catch (SQLException e) {
-            System.err.println("Error al obtener tratamiento por ID: " + e.getMessage());
+            throw new RuntimeException("Error al obtener tratamiento: " + e.getMessage(), e);
         }
-        return tratamiento;
     }
 
     @Override
     public List<Tratamiento> obtenerTodos() {
-        String sql = "SELECT id_tratamiento, id_cita, descripcion, duracion FROM tratamientos";
+        String sql = "SELECT id_tratamiento, id_cita, descripcion, duracion "
+                + "FROM tratamientos ORDER BY id_tratamiento DESC";
+
         List<Tratamiento> lista = new ArrayList<>();
 
         try (Connection con = ConexionDB.getConnection(); PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
@@ -76,13 +95,14 @@ public class TratamientoDAO implements ITratamientoDAO {
                 tratamiento.setId_cita(rs.getInt("id_cita"));
                 tratamiento.setDescripcion(rs.getString("descripcion"));
                 tratamiento.setDuracion(rs.getInt("duracion"));
-
                 lista.add(tratamiento);
             }
+
+            return lista;
+
         } catch (SQLException e) {
-            System.err.println("Error al listar tratamientos: " + e.getMessage());
+            throw new RuntimeException("Error al listar tratamientos: " + e.getMessage(), e);
         }
-        return lista;
     }
 
     @Override
@@ -96,11 +116,11 @@ public class TratamientoDAO implements ITratamientoDAO {
             ps.setString(2, tratamiento.getDescripcion());
             ps.setInt(3, tratamiento.getDuracion());
             ps.setInt(4, tratamiento.getId_tratamiento());
+
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al actualizar el tratamiento: " + e.getMessage());
-            return false;
+            throw new RuntimeException("Error al actualizar tratamiento: " + e.getMessage(), e);
         }
     }
 
@@ -114,8 +134,7 @@ public class TratamientoDAO implements ITratamientoDAO {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al eliminar el tratamiento: " + e.getMessage());
-            return false;
+            throw new RuntimeException("Error al eliminar tratamiento: " + e.getMessage(), e);
         }
     }
 }

@@ -29,14 +29,13 @@ public class MedicamentoDAO implements IMedicamentoDAO {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al insertar medicamento: " + e.getMessage());
-            return false;
+            throw new RuntimeException("Error al insertar medicamento: " + e.getMessage(), e);
         }
     }
 
     @Override
     public Medicamento obtenerPorId(int id_medicamento) {
-        String sql = "SELECT id_medicamento, nombre FROM medicamentos WHERE id_medicamento = ?";
+        String sql = "SELECT id_medicamento, nombre FROM medicamentos WHERE id_medicamento = ? LIMIT 1";
         Medicamento medicamento = null;
         try (Connection con = ConexionDB.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
 
@@ -50,14 +49,14 @@ public class MedicamentoDAO implements IMedicamentoDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error al obtener medicamento por ID: " + e.getMessage());
+            throw new RuntimeException("Error al obtener medicamento por ID: " + e.getMessage(), e);
         }
         return medicamento;
     }
 
     @Override
     public List<Medicamento> obtenerTodos() {
-        String sql = "SELECT id_medicamento, nombre FROM medicamentos";
+        String sql = "SELECT id_medicamento, nombre FROM medicamentos ORDER BY nombre ASC";
         List<Medicamento> lista = new ArrayList<>();
         try (Connection con = ConexionDB.getConnection(); PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
@@ -68,7 +67,7 @@ public class MedicamentoDAO implements IMedicamentoDAO {
                 lista.add(medicamento);
             }
         } catch (SQLException e) {
-            System.err.println("Error al listar medicamentos: " + e.getMessage());
+            throw new RuntimeException("Error al listar medicamentos: " + e.getMessage(), e);
         }
         return lista;
     }
@@ -83,8 +82,7 @@ public class MedicamentoDAO implements IMedicamentoDAO {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al actualizar medicamento: " + e.getMessage());
-            return false;
+            throw new RuntimeException("Error al actualizar medicamento: " + e.getMessage(), e);
         }
     }
 
@@ -97,8 +95,7 @@ public class MedicamentoDAO implements IMedicamentoDAO {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al eliminar medicamento: " + e.getMessage());
-            return false;
+            throw new RuntimeException("Error al eliminar medicamento: " + e.getMessage(), e);
         }
     }
 }
