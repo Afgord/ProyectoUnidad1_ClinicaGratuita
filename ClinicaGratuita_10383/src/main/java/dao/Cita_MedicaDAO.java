@@ -12,6 +12,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.List;
 import model.Cita_Medica;
@@ -116,6 +117,62 @@ public class Cita_MedicaDAO implements ICita_MedicaDAO {
     }
 
     @Override
+    public boolean existeCitaActiva(int idDoctor, Date fecha, Time hora) {
+        String sql = """
+        SELECT 1
+        FROM citas_medicas
+        WHERE id_doctor = ?
+          AND fecha = ?
+          AND hora = ?
+          AND estado IN ('programada','en curso')
+        LIMIT 1
+    """;
+
+        try (Connection con = ConexionDB.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idDoctor);
+            ps.setDate(2, fecha);
+            ps.setTime(3, hora);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al validar disponibilidad: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<Time> obtenerHorasOcupadas(int idDoctor, Date fecha) {
+        String sql = """
+        SELECT hora
+        FROM citas_medicas
+        WHERE id_doctor = ?
+          AND fecha = ?
+          AND estado IN ('programada','en curso')
+    """;
+
+        List<Time> horas = new ArrayList<>();
+
+        try (Connection con = ConexionDB.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idDoctor);
+            ps.setDate(2, fecha);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    horas.add(rs.getTime("hora"));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al obtener horas ocupadas: " + e.getMessage(), e);
+        }
+
+        return horas;
+    }
+
+    @Override
     public List<Cita_Medica> obtenerTodos() {
         String sql = "SELECT id_cita, id_paciente, id_doctor, fecha, hora, motivo_consulta, estado FROM citas_medicas ORDER BY fecha DESC, hora DESC";
         List<Cita_Medica> lista = new ArrayList<>();
@@ -165,4 +222,37 @@ public class Cita_MedicaDAO implements ICita_MedicaDAO {
             throw new RuntimeException("Error al eliminar cita: " + e.getMessage(), e);
         }
     }
+
+    @Override
+    public boolean actualizarEstado(int idCita, String nuevoEstado) {
+        String sql = "UPDATE citas_medicas SET estado = ? WHERE id_cita = ?";
+        try (Connection con = ConexionDB.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, nuevoEstado);
+            ps.setInt(2, idCita);
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al actualizar estado: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String obtenerEstado(int idCita) {
+        String sql = "SELECT estado FROM citas_medicas WHERE id_cita = ?";
+        try (Connection con = ConexionDB.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idCita);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("estado");
+                }
+                return null;
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al obtener estado: " + e.getMessage(), e);
+        }
+    }
+
 }

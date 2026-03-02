@@ -5,6 +5,7 @@
 package interfaces;
 
 import java.sql.Date;
+import java.sql.Time;
 import java.util.List;
 import model.Cita_Medica;
 
@@ -21,6 +22,14 @@ public interface ICita_MedicaDAO {
     List<Cita_Medica> obtenerCitasPorPaciente(int id_paciente);
 
     List<Cita_Medica> obtenerCitasPorFecha(Date fecha);
+
+    boolean existeCitaActiva(int idDoctor, Date fecha, Time hora);
+
+    boolean actualizarEstado(int idCita, String nuevoEstado);
+
+    String obtenerEstado(int idCita);
+
+    List<Time> obtenerHorasOcupadas(int idDoctor, Date fecha);
 
     List<Cita_Medica> obtenerTodos();
 

@@ -15,4 +15,9 @@ public interface IAgenda_DiariaDAO {
 
     List<Agenda_Diaria> obtenerAgendaHoy();
 
+    List<Agenda_Diaria> obtenerAgendaHoyPorDoctor(int idDoctor);
+
+    // Método temporal para las pruebas con citas en fin de semana
+    List<Agenda_Diaria> obtenerProximasCitasPorDoctor(int idDoctor);
+
 }

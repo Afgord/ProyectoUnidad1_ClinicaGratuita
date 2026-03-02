@@ -13,6 +13,7 @@ import java.sql.Time;
 public class Agenda_Diaria {
 
     private int id_cita;
+    private int id_doctor;
     private Time hora;
     private String paciente;
     private int edad;
@@ -23,8 +24,9 @@ public class Agenda_Diaria {
 
     }
 
-    public Agenda_Diaria(int id_cita, Time hora, String paciente, int edad, String motivo_consulta, String estado) {
+    public Agenda_Diaria(int id_cita, int id_doctor, Time hora, String paciente, int edad, String motivo_consulta, String estado) {
         this.id_cita = id_cita;
+        this.id_doctor = id_doctor;
         this.hora = hora;
         this.paciente = paciente;
         this.edad = edad;
@@ -38,6 +40,14 @@ public class Agenda_Diaria {
 
     public void setId_cita(int id_cita) {
         this.id_cita = id_cita;
+    }
+
+    public int getId_doctor() {
+        return id_doctor;
+    }
+
+    public void setId_doctor(int id_doctor) {
+        this.id_doctor = id_doctor;
     }
 
     public Time getHora() {
@@ -82,7 +92,9 @@ public class Agenda_Diaria {
 
     @Override
     public String toString() {
-        return "Agenda_Diaria{" + "id_cita=" + id_cita + ", hora=" + hora + ", paciente=" + paciente + ", edad=" + edad + ", motivo_consulta=" + motivo_consulta + ", estado=" + estado + '}';
+        return "Agenda_Diaria{" + "id_cita=" + id_cita + ",id_doctor=" + id_doctor + ", hora=" + hora
+                + ", paciente=" + paciente + ", edad=" + edad + ", motivo_consulta=" + motivo_consulta
+                + ", estado=" + estado + '}';
     }
 
 }

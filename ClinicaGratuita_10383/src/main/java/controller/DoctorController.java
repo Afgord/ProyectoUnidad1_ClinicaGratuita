@@ -78,7 +78,14 @@ public class DoctorController {
     }
 
     public List<Doctor> obtenerTodos() {
-        return doctorDAO.obtenerTodos();
+        try {
+            List<Doctor> lista = doctorDAO.obtenerTodos();
+            ultimo_mensaje = "Doctores cargados: " + lista.size();
+            return lista;
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
+            return List.of();
+        }
     }
 
     public boolean actualizar(Doctor doctor) {

@@ -18,12 +18,18 @@ public class TratamientoController {
     private final ITratamientoDAO tratamientoDAO;
     private String ultimo_mensaje = "";
 
+    private int ultimo_id_tratamiento = -1;
+
     public TratamientoController() {
         this.tratamientoDAO = new TratamientoDAO();
     }
 
     public String getUltimo_mensaje() {
         return ultimo_mensaje;
+    }
+
+    public int getUltimo_id_tratamiento() {
+        return ultimo_id_tratamiento;
     }
 
     // Regla de negocio: finalizar consulta = crear tratamiento + completar cita (SP)
@@ -48,6 +54,12 @@ public class TratamientoController {
             tratamiento.setDuracion(duracion);
 
             boolean ok = tratamientoDAO.insertar(tratamiento);
+
+            if (ok && tratamiento.getId_tratamiento() <= 0) {
+                ok = false;
+            }
+
+            ultimo_id_tratamiento = ok ? tratamiento.getId_tratamiento() : -1;
 
             // Si el SP devolvió el id, ya quedó guardado en t.setId_tratamiento(...)
             ultimo_mensaje = ok

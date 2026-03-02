@@ -8,6 +8,10 @@ import java.sql.Date;
 import java.sql.Time;
 
 /**
+ * Clase Cita_Medica
+ * Esta clase pertenece al Modelo del proyecto
+ * Se encarga de crear los objetos Cita_medica
+ * 
  * @author Afgord
  */
 public class Cita_Medica {
@@ -20,9 +24,22 @@ public class Cita_Medica {
     private int id_paciente;
     private int id_doctor;
 
+    /**
+     * Tenemos el constructor vacio
+     */
     public Cita_Medica() {
     }
 
+    /**
+     * Tenemos el constructor del objeto Paciente que recibe como parámetros
+     * @param id_cita  El id generado para la cita
+     * @param fecha La fecha en que se atenderá la cita
+     * @param hora La hora en que se atenderá la cita
+     * @param motivo_consulta El motivo de la consulta por parte del paciente
+     * @param estado El estado de la consulta
+     * @param id_paciente El id del paciente
+     * @param id_doctor El id del doctor que atenderá la cita
+     */
     public Cita_Medica(int id_cita, Date fecha, Time hora, String motivo_consulta,
             String estado, int id_paciente, int id_doctor) {
         this.id_cita = id_cita;
@@ -34,6 +51,9 @@ public class Cita_Medica {
         this.id_doctor = id_doctor;
     }
 
+    // A continuación se enlistan los getter y setters del objeto Cita_Medica para
+     // cada uno de sus atributos
+    
     public int getId_cita() {
         return id_cita;
     }

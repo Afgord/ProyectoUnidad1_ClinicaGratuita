@@ -110,9 +110,10 @@ from pacientes
 order by nombre asc;
 
 -- Vista para el Dashboard Principal
-create view vista_agenda_diaria as
+create or replace view vista_agenda_diaria as
 select
 	c.id_cita,
+    c.id_doctor,
     c.hora,
     p.nombre as paciente,
     p.edad,
@@ -120,6 +121,7 @@ select
     c.estado
 from citas_medicas c
 join pacientes p on c.id_paciente = p.id_paciente
+join doctores d on c.id_doctor = d.id_doctor
 where c.fecha = CURDATE() and
 c.estado != 'cancelada'
 order by c.hora asc;
@@ -189,10 +191,15 @@ delimiter //
 		IN param_especialidad varchar(60)
 	)
 	begin
+		declare exit handler for 1062
+        begin
+			rollback;
+			signal sqlstate '45000' set message_text = 'ERROR: Email o teléfono ya registrado.';
+		end;
 		declare exit handler for sqlexception
 		begin
 			rollback;
-			signal sqlstate '45000' set message_text = 'ERROR: El doctor ya está registrado';
+			signal sqlstate '45000' set message_text = 'ERROR: No se pudo registrar el doctor.';
 		end;
     
 		start transaction;
@@ -234,11 +241,12 @@ delimiter //
 			where id_doctor = param_id_doctor
 			and fecha = param_fecha
 			and hora = param_hora
-			and estado != 'cancelada';
+			and estado in ('programada', 'en curso');
         
 			-- si la comparación no nos regresa 0 quiere decir que está ocupada esa fecha.
 			if cita_existente > 0 then
-				signal sqlstate '45000' set message_text = 'Cita existente en esa fecha.  Favor de seleccionar otra.';
+				rollback;
+				signal sqlstate '45000' set message_text = 'Cita existente en esa fecha y hora.  Favor de seleccionar otra.';
 			else
 				-- de estar disponible esa fecha se procede a capturar la nueva cita.
 				insert into citas_medicas (id_paciente, id_doctor, fecha, hora, motivo_consulta)
@@ -250,32 +258,34 @@ delimiter ;
 
 	-- Creamos el SP sp_finalizar_consulta el cual nos permitirá guardar los cambios
 	-- una vez finalice la consulta de un paciente
+    
 delimiter //
-	create procedure sp_finalizar_consulta(
-		in param_id_cita int,
-		in param_descripcion text,
-		in param_duracion int
-	)
-	begin
-		declare exit handler for sqlexception
-		begin
-			rollback;
-			signal sqlstate '45000' set message_text = 'Error al finalizar la consulta.';
-		end;
-    
-		start transaction;
-		-- Insertamos los datos del tratamiento
-			insert into tratamientos (id_cita, descripcion, duracion) 
-			values (param_id_cita, param_descripcion, param_duracion);
-    
-			-- Actualizamos el estado de la cita automáticamente
-			update citas_medicas 
-			set estado = 'completada' 
-			where id_cita = param_id_cita;
-        
-			select last_insert_id() as id_tratamiento;
-		commit;
-	end //
+	CREATE PROCEDURE sp_finalizar_consulta(
+    IN  param_id_cita INT,
+    IN  param_descripcion TEXT,
+    IN  param_duracion INT,
+    OUT param_id_tratamiento INT
+)
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Error al finalizar la consulta.';
+    END;
+
+    START TRANSACTION;
+
+        INSERT INTO tratamientos (id_cita, descripcion, duracion)
+        VALUES (param_id_cita, param_descripcion, param_duracion);
+
+        SET param_id_tratamiento = LAST_INSERT_ID();
+
+        UPDATE citas_medicas
+        SET estado = 'completada'
+        WHERE id_cita = param_id_cita;
+
+    COMMIT;
+END//
 delimiter ;
 
 	-- Creamos el SP sp_tratamiento_medicamento el cual nos permitirá documentar
@@ -365,7 +375,7 @@ delimiter //
 		commit;
 	end //
 delimiter ;
-    
+
 -- Este SP nos permite actualizar los datos de un doctor
 delimiter //
 	create procedure sp_actualizar_doctor(
@@ -376,6 +386,11 @@ delimiter //
 		in param_especialidad varchar(60)
 	)
 	begin
+		declare exit handler for 1062
+        begin
+			rollback;
+			signal sqlstate '45000' set message_text = 'ERROR: Email o teléfono ya registrado.';
+		end;
 		declare exit handler for sqlexception
 		begin
 			rollback;
@@ -390,6 +405,11 @@ delimiter //
 			especialidad = param_especialidad
 		WHERE
 			id_doctor = param_id_doctor;
+		
+        if row_count() = 0 then
+			rollback;
+            signal sqlstate '45000' set message_text = 'No existe el doctor.';
+		end if;
 		commit;
 	end //
 delimiter ;
@@ -413,8 +433,8 @@ delimiter //
 		end if;
     
 		if not (
-			(new.hora >= '07:00:00' and new.hora <= '13:00:00') OR
-			(new.hora >= '15:00:00' and new.hora <= '19:00:00')
+			(new.hora >= '07:00:00' and new.hora <= '12:30:00') OR
+			(new.hora >= '15:00:00' and new.hora <= '18:30:00')
 		) then
 			signal sqlstate '45000' set message_text = 'Solo se atiende de 7 AM - 1 PM y 3 PM - 7 PM.';
 		end if;
@@ -437,8 +457,8 @@ delimiter //
 		end if;
     
 		if not (
-			(new.hora >= '07:00:00' and new.hora <= '13:00:00') OR
-			(new.hora >= '15:00:00' and new.hora <= '19:00:00')
+			(new.hora >= '07:00:00' and new.hora <= '12:30:00') OR
+			(new.hora >= '15:00:00' and new.hora <= '18:30:00')
 		) then
 			signal sqlstate '45000' set message_text = 'Solo se atiende de 7 AM - 1 PM y 3 PM - 7 PM.';
 		end if;

@@ -96,7 +96,14 @@ public class PacienteController {
     }
 
     public List<Paciente> obtenerTodos() {
-        return pacienteDAO.obtenerTodos();
+        try {
+            List<Paciente> lista = pacienteDAO.obtenerTodos();
+            ultimo_mensaje = "Pacientes cargados: " + lista.size();
+            return lista;
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
+            return List.of();
+        }
     }
 
     public boolean actualizar(Paciente paciente) {

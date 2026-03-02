@@ -103,8 +103,8 @@ public class PacienteDAO implements IPacienteDAO {
 
             cs.setInt(1, paciente.getId_paciente());
             cs.setString(2, paciente.getDireccion());
-            cs.setString(3, paciente.getTelefono());
-            cs.setString(4, paciente.getEmail());
+            cs.setString(3, paciente.getEmail());
+            cs.setString(4, paciente.getTelefono());
 
             cs.executeUpdate();
             return true;

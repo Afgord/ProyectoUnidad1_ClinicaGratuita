@@ -55,8 +55,8 @@ public class Cita_MedicaController {
                 return false;
             }
 
-            boolean turno_matutino = !hora_local.isBefore(LocalTime.of(7, 0)) && !hora_local.isAfter(LocalTime.of(13, 0));
-            boolean turno_vespertino = !hora_local.isBefore(LocalTime.of(15, 0)) && !hora_local.isAfter(LocalTime.of(19, 0));
+            boolean turno_matutino = !hora_local.isBefore(LocalTime.of(7, 0)) && !hora_local.isAfter(LocalTime.of(12, 30));
+            boolean turno_vespertino = !hora_local.isBefore(LocalTime.of(15, 0)) && !hora_local.isAfter(LocalTime.of(18, 30));
 
             if (!(turno_matutino || turno_vespertino)) {
                 ultimo_mensaje = "Solo se atiende de 7 AM - 1 PM y 3 PM - 7 PM.";
@@ -66,6 +66,11 @@ public class Cita_MedicaController {
             DayOfWeek dia = fecha_local.getDayOfWeek();
             if (dia == DayOfWeek.SATURDAY || dia == DayOfWeek.SUNDAY) {
                 ultimo_mensaje = "Solo hay consultas los días Lunes a Viernes.";
+                return false;
+            }
+
+            if (cita_medicaDAO.existeCitaActiva(id_doctor, fecha, hora)) {
+                ultimo_mensaje = "Ese doctor ya tiene una cita programada en esa fecha y hora.";
                 return false;
             }
 
@@ -134,6 +139,15 @@ public class Cita_MedicaController {
         }
     }
 
+    public List<Time> obtenerHorasOcupadas(int idDoctor, Date fecha) {
+        if (idDoctor <= 0 || fecha == null) {
+            ultimo_mensaje = "Doctor o fecha inválidos.";
+            return List.of();
+        }
+
+        return cita_medicaDAO.obtenerHorasOcupadas(idDoctor, fecha);
+    }
+
     public boolean actualizar(Cita_Medica cita) {
         try {
             if (cita == null) {
@@ -173,6 +187,73 @@ public class Cita_MedicaController {
 
             boolean ok = cita_medicaDAO.actualizar(cita);
             ultimo_mensaje = ok ? "Cita actualizada." : "No se pudo actualizar.";
+            return ok;
+
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
+            return false;
+        }
+    }
+
+    public boolean iniciarConsulta(int idCita) {
+        try {
+            if (idCita <= 0) {
+                ultimo_mensaje = "ID de cita inválido.";
+                return false;
+            }
+
+            String estadoActual = cita_medicaDAO.obtenerEstado(idCita);
+            if (estadoActual == null) {
+                ultimo_mensaje = "La cita no existe.";
+                return false;
+            }
+
+            estadoActual = estadoActual.trim().toLowerCase();
+
+            if (!estadoActual.equals("programada")) {
+                ultimo_mensaje = "Solo se puede iniciar una cita en estado 'programada'. Estado actual: " + estadoActual;
+                return false;
+            }
+
+            boolean ok = cita_medicaDAO.actualizarEstado(idCita, "en curso");
+            ultimo_mensaje = ok ? "Consulta iniciada (estado: en curso)." : "No se pudo iniciar la consulta.";
+            return ok;
+
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
+            return false;
+        }
+    }
+
+    public boolean cancelarCita(int idCita) {
+        try {
+            if (idCita <= 0) {
+                ultimo_mensaje = "ID de cita inválido.";
+                return false;
+            }
+
+            String estadoActual = cita_medicaDAO.obtenerEstado(idCita);
+            if (estadoActual == null) {
+                ultimo_mensaje = "La cita no existe.";
+                return false;
+            }
+
+            estadoActual = estadoActual.trim().toLowerCase();
+
+            // Regla sugerida:
+            // - se puede cancelar si está programada
+            // - si ya está completada, ya no
+            if (estadoActual.equals("completada")) {
+                ultimo_mensaje = "No se puede cancelar una cita completada.";
+                return false;
+            }
+            if (estadoActual.equals("cancelada")) {
+                ultimo_mensaje = "La cita ya está cancelada.";
+                return false;
+            }
+
+            boolean ok = cita_medicaDAO.actualizarEstado(idCita, "cancelada");
+            ultimo_mensaje = ok ? "Cita cancelada correctamente." : "No se pudo cancelar la cita.";
             return ok;
 
         } catch (Exception e) {

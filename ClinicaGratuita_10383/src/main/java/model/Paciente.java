@@ -5,6 +5,9 @@
 package model;
 
 /**
+ * Clase Paciente
+ * Esta clase pertenece al Modelo del proyecto
+ * Se encarga de crear los objetos Paciente
  * @author Afgord
  */
 public class Paciente {
@@ -17,9 +20,22 @@ public class Paciente {
     private String email;
     private String telefono;
 
+    /**
+     * Tenemos el constructor vacio
+     */
     public Paciente() {
     }
 
+    /**
+     * Tenemos el constructor del objeto Paciente que recibe como parámetros
+     * @param id_paciente el id del paciente
+     * @param nombre el nombre del paciente
+     * @param edad la edad del paciente
+     * @param sexo el género del paciente
+     * @param direccion la dirección actual del paciente
+     * @param email el correo electrónico del paciente
+     * @param telefono el teléfono actual del paciente
+     */
     public Paciente(int id_paciente, String nombre, int edad, String sexo,
             String direccion, String email, String telefono) {
         this.id_paciente = id_paciente;
@@ -31,6 +47,10 @@ public class Paciente {
         this.telefono = telefono;
     }
 
+    
+     // A continuación se enlistan los getter y setters del objeto Paciente para
+     // cada uno de sus atributos
+     
     public int getId_paciente() {
         return id_paciente;
     }
@@ -87,6 +107,7 @@ public class Paciente {
         this.telefono = telefono;
     }
 
+    // y el método toString
     @Override
     public String toString() {
         return "Paciente{" + "id_paciente=" + id_paciente + ", nombre=" + nombre + ", edad="

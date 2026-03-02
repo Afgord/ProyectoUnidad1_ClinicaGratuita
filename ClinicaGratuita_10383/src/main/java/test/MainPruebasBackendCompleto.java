@@ -79,6 +79,28 @@ public class MainPruebasBackendCompleto {
     }
 
     // =========================================================
+    // Helpers: generación de datos únicos (evita choques con UNIQUE)
+    // =========================================================
+    private static String emailUnico(String prefijo, String dominio) {
+        return prefijo + System.nanoTime() + "@" + dominio;
+    }
+
+    /**
+     * Teléfono único de 10 dígitos. Mantiene tu estilo: "644" + 7 dígitos = 10.
+     */
+    private static String telefonoUnico10() {
+        long n = Math.abs(System.nanoTime());
+        String s = String.valueOf(n);
+
+        // últimos 7 dígitos
+        String ult7 = s.substring(Math.max(0, s.length() - 7));
+        // rellenar a 7 si quedó corto
+        ult7 = String.format("%7s", ult7).replace(' ', '0');
+
+        return "644" + ult7; // 10 dígitos
+    }
+
+    // =========================================================
     // Helpers de salida / asserts
     // =========================================================
     private static void banner() {
@@ -167,9 +189,9 @@ public class MainPruebasBackendCompleto {
         );
         info("Mensaje: " + pc.getUltimo_mensaje());
 
-        // ✅ Email corto y único (evita problemas con VARCHAR pequeño)
-        String email = "p" + System.nanoTime() + "@mx.com";  // o @mail.com
-        String tel = "644" + String.valueOf((int) (Math.random() * 9000000) + 1000000); // 10 dígitos
+        // ✅ Email y teléfono únicos
+        String email = emailUnico("p", "mx.com");
+        String tel = telefonoUnico10();
 
         info("Email generado: " + email);
         info("Teléfono generado: " + tel);
@@ -190,13 +212,14 @@ public class MainPruebasBackendCompleto {
         int idPaciente = buscarPacienteIdPorEmail(pc.obtenerTodos(), email);
         assertGreater(idPaciente, 0, "Paciente: obtener ID por email");
 
+        // duplicado email (tel único para asegurar que el fallo sea por email)
         boolean dup = pc.insertarPaciente(
                 "Paciente Duplicado",
                 30,
                 "Masculino",
                 "Otra",
                 email,
-                "6440000000"
+                telefonoUnico10()
         );
         info("Insert duplicado?: " + dup);
         info("Mensaje controller: " + pc.getUltimo_mensaje());
@@ -205,15 +228,17 @@ public class MainPruebasBackendCompleto {
         Paciente p = pc.obtenerPorId(idPaciente);
         assertNotNull(p, "Paciente: obtenerPorId OK");
 
+        // update OK (email/tel únicos)
         p.setDireccion("Calle Actualizada 999");
-        p.setTelefono("6441111111");
-        p.setEmail(("upd_" + email).toLowerCase());
+        p.setTelefono(telefonoUnico10());
+        p.setEmail(("upd_" + emailUnico("p", "mx.com")).toLowerCase());
 
         boolean updOk = pc.actualizar(p);
         info("Update OK?: " + updOk);
         info("Mensaje controller: " + pc.getUltimo_mensaje());
         assertTrue(updOk, "Paciente: actualizar OK");
 
+        // update inválido (tel)
         p.setTelefono("abc");
         boolean updBad = pc.actualizar(p);
         info("Update bad?: " + updBad);
@@ -260,41 +285,50 @@ public class MainPruebasBackendCompleto {
         );
         info("Mensaje: " + dc.getUltimo_mensaje());
 
-        // Insert OK
-        String email = "doctor_test_" + System.currentTimeMillis() + "@mail.com";
+        // Insert OK (email/tel únicos)
+        String email = emailUnico("doctor_test_", "mail.com");
+        String tel = telefonoUnico10();
+
+        info("Email generado: " + email);
+        info("Teléfono generado: " + tel);
+
         boolean okInsert = dc.insertarDoctor(
                 "Doctor Prueba",
                 email,
-                "6442222222",
+                tel,
                 "Medicina General"
         );
+        info("Insert OK?: " + okInsert);
+        info("Mensaje controller: " + dc.getUltimo_mensaje());
         assertTrue(okInsert, "Doctor: insertar OK");
-        info("Mensaje: " + dc.getUltimo_mensaje());
 
         int idDoctor = buscarDoctorIdPorEmail(dc.obtenerTodos(), email);
         assertGreater(idDoctor, 0, "Doctor: obtener ID por email");
 
-        // duplicado email
-        boolean dup = dc.insertarDoctor("Doctor Duplicado", email, "6443333333", "X");
+        // duplicado email (tel único para asegurar que falle por email)
+        boolean dup = dc.insertarDoctor("Doctor Duplicado", email, telefonoUnico10(), "X");
+        info("Insert duplicado?: " + dup);
+        info("Mensaje controller: " + dc.getUltimo_mensaje());
         assertFalse(dup, "Doctor: insertar con email duplicado debe fallar");
-        info("Mensaje: " + dc.getUltimo_mensaje());
 
         // obtenerPorId
         Doctor d = dc.obtenerPorId(idDoctor);
         assertNotNull(d, "Doctor: obtenerPorId OK");
         info("Doctor obtenido: id=" + d.getId_doctor() + ", email=" + d.getEmail());
 
-        // actualizar OK (debe traer TODOS los campos completos)
-        d.setTelefono("6449999999");
+        // actualizar OK (tel único)
+        d.setTelefono(telefonoUnico10());
         boolean updOk = dc.actualizar(d);
+        info("Update OK?: " + updOk);
+        info("Mensaje controller: " + dc.getUltimo_mensaje());
         assertTrue(updOk, "Doctor: actualizar OK");
-        info("Mensaje: " + dc.getUltimo_mensaje());
 
         // actualizar inválido (estado de teléfono)
         d.setTelefono("12");
         boolean updBad = dc.actualizar(d);
+        info("Update bad?: " + updBad);
+        info("Mensaje controller: " + dc.getUltimo_mensaje());
         assertFalse(updBad, "Doctor: actualizar con teléfono inválido debe fallar");
-        info("Mensaje: " + dc.getUltimo_mensaje());
 
         System.out.println();
         return idDoctor;
@@ -382,7 +416,7 @@ public class MainPruebasBackendCompleto {
         info("Mensaje: " + cc.getUltimo_mensaje());
 
         // Actualizar: estado válido (mantenemos programada para poder finalizar consulta después)
-        cita.setEstado("programada");
+        cita.setEstado("en curso");
         boolean updOk = cc.actualizar(cita);
         assertTrue(updOk, "Cita: actualizar estado válido OK");
         info("Mensaje: " + cc.getUltimo_mensaje());
@@ -410,9 +444,7 @@ public class MainPruebasBackendCompleto {
 
     private static LocalDate siguienteDiaHabil(LocalDate desde) {
         LocalDate d = desde;
-        // Para evitar "pasado", elegimos desde+1 si hoy es fin de semana o si quieres siempre futuro:
-        // Aquí lo dejamos como "si hoy es hábil, puede ser hoy; si no, avanza".
-        // Pero el controller permite hoy (si no es pasado). Para ser más seguro, usamos mañana como base:
+        // Para ser más seguro, usamos mañana como base:
         d = d.plusDays(1);
         while (d.getDayOfWeek() == DayOfWeek.SATURDAY || d.getDayOfWeek() == DayOfWeek.SUNDAY) {
             d = d.plusDays(1);
@@ -443,7 +475,6 @@ public class MainPruebasBackendCompleto {
         info("Mensaje: " + ac.getUltimo_mensaje());
         info("Citas en agenda hoy: " + agenda.size());
 
-        // No hacemos assert de que haya citas porque nuestra cita la programamos para el próximo día hábil.
         if (agenda.isEmpty()) {
             warn("Agenda hoy vacía (esto puede ser normal).");
         }
@@ -466,8 +497,10 @@ public class MainPruebasBackendCompleto {
         assertFalse(tc.finalizarConsulta(idCita, "X", 0), "Tratamiento: duración inválida debe fallar");
         info("Mensaje: " + tc.getUltimo_mensaje());
 
-        assertTrue(tc.finalizarConsulta(idCita, "Tratamiento de prueba (backend)", 7), "Tratamiento: finalizarConsulta OK");
+        boolean finOk = tc.finalizarConsulta(idCita, "Tratamiento de prueba (backend)", 7);
+        info("Finalizar OK?: " + finOk);
         info("Mensaje: " + tc.getUltimo_mensaje());
+        assertTrue(finOk, "Tratamiento: finalizarConsulta OK");
 
         int idTrat = buscarTratamientoPorCita(tc.obtenerTodos(), idCita);
         assertGreater(idTrat, 0, "Tratamiento: obtener id_tratamiento por id_cita");
@@ -508,7 +541,6 @@ public class MainPruebasBackendCompleto {
 
         int idMed = buscarMedicamentoIdPorNombre(lista, nombre);
         if (idMed <= 0) {
-            // Si no lo encontramos por nombre (por collation/acentos etc.), agarramos el primero como fallback.
             warn("No encontré el medicamento por nombre; tomaré uno existente para receta.");
             idMed = lista.get(0).getId_medicamento();
         }
@@ -543,11 +575,11 @@ public class MainPruebasBackendCompleto {
         System.out.println("---- 7) RECETA (RELACION + VISTA) ----");
 
         // Agregar OK
-        assertTrue(
-                tmc.agregarMedicamento(idTratamiento, idMedicamento, "Tomar 1 capsula cada 8 horas"),
-                "Receta: agregar medicamento OK"
-        );
+        boolean addOk = tmc.agregarMedicamento(idTratamiento, idMedicamento, "Tomar 1 capsula cada 8 horas");
+        info("Agregar OK?: " + addOk);
         info("Mensaje: " + tmc.getUltimo_mensaje());
+        info("IDs usados -> idTratamiento=" + idTratamiento + ", idMedicamento=" + idMedicamento);
+        assertTrue(addOk, "Receta: agregar medicamento OK");
 
         // Agregar duplicado
         assertFalse(

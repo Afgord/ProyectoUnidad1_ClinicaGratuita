@@ -23,7 +23,11 @@ public class TratamientoDAO implements ITratamientoDAO {
 
     @Override
     public boolean insertar(Tratamiento tratamiento) {
-        String sql = "{CALL sp_finalizar_consulta(?, ?, ?)}";
+
+        System.out.println("DAO -> sp_finalizar_consulta id_cita=" + tratamiento.getId_cita()
+        + " duracion=" + tratamiento.getDuracion());
+        
+        String sql = "{CALL sp_finalizar_consulta(?, ?, ?, ?)}";
 
         try (Connection con = ConexionDB.getConnection(); CallableStatement cs = con.prepareCall(sql)) {
 
@@ -31,22 +35,14 @@ public class TratamientoDAO implements ITratamientoDAO {
             cs.setString(2, tratamiento.getDescripcion());
             cs.setInt(3, tratamiento.getDuracion());
 
-            boolean tiene_resultset = cs.execute();
+            cs.registerOutParameter(4, java.sql.Types.INTEGER); // OUT id_tratamiento
 
-            if (!tiene_resultset) {
-                throw new RuntimeException("Error: No se recibió el ID del tratamiento.");
-            }
+            cs.execute();
 
-            if (tiene_resultset) {
-                try (ResultSet rs = cs.getResultSet()) {
-                    if (rs.next()) {
-                        int id_generado = rs.getInt("id_tratamiento");
-                        tratamiento.setId_tratamiento(id_generado);
-                    }
-                }
-            }
+            int idGenerado = cs.getInt(4);
+            tratamiento.setId_tratamiento(idGenerado);
 
-            return true;
+            return idGenerado > 0;
 
         } catch (SQLException e) {
             throw new RuntimeException("Error al finalizar consulta: " + e.getMessage(), e);

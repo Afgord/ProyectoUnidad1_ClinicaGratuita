@@ -39,4 +39,58 @@ public class Agenda_DiariaController {
         }
     }
 
+    public List<Agenda_Diaria> obtenerAgendaHoyPorDoctor(int idDoctor) {
+        try {
+            if (idDoctor <= 0) {
+                ultimo_mensaje = "Doctor inválido.";
+                return List.of();
+            }
+
+//            java.time.DayOfWeek dow = java.time.LocalDate.now().getDayOfWeek();
+//            if (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY) {
+//                ultimo_mensaje = "Hoy no hay consultas (solo Lunes a Viernes).";
+//                return List.of();
+//            }
+            List<Agenda_Diaria> lista = agendaDAO.obtenerAgendaHoyPorDoctor(idDoctor);
+            ultimo_mensaje = lista.isEmpty()
+                    ? "No hay citas programadas para hoy (desde este momento)."
+                    : "Agenda cargada correctamente.";
+            return lista;
+
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
+            return List.of();
+        }
+    }
+
+    public List<Agenda_Diaria> obtenerAgendaParaSeleccion(int idDoctor) {
+        try {
+            if (idDoctor <= 0) {
+                ultimo_mensaje = "Doctor inválido.";
+                return List.of();
+            }
+
+            // 1) HOY (vista_agenda_diaria): ya filtra por fecha=CURDATE() y estado != cancelada
+            List<Agenda_Diaria> hoy = agendaDAO.obtenerAgendaHoyPorDoctor(idDoctor);
+            if (!hoy.isEmpty()) {
+                ultimo_mensaje = "Agenda de hoy cargada correctamente.";
+                return hoy;
+            }
+
+            // 2) Fallback controlado (solo controller): próximas citas programadas L-V
+            List<Agenda_Diaria> prox = agendaDAO.obtenerProximasCitasPorDoctor(idDoctor);
+
+            if (prox.isEmpty()) {
+                ultimo_mensaje = "No hay consultas para hoy ni próximas citas programadas para este doctor.";
+            } else {
+                ultimo_mensaje = "Hoy no hay consultas para este doctor. Se muestran las próximas citas programadas.";
+            }
+
+            return prox;
+
+        } catch (Exception e) {
+            ultimo_mensaje = e.getMessage();
+            return List.of();
+        }
+    }
 }

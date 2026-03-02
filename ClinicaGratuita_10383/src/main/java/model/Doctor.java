@@ -5,6 +5,9 @@
 package model;
 
 /**
+ * Clase Doctor Esta clase pertenece al Modelo del proyecto Se encarga de crear
+ * los objetos Doctor
+ *
  * @author Afgord
  */
 public class Doctor {
@@ -18,6 +21,15 @@ public class Doctor {
     public Doctor() {
     }
 
+    /**
+     * Tenemos el constructor del objeto Doctor que recibe como parámetros
+     *
+     * @param id_doctor el id del doctor
+     * @param nombre el nombre del doctor
+     * @param email el correo electrónico del doctor
+     * @param telefono el teléfono actual del doctor
+     * @param especialidad la especialidad del doctor
+     */
     public Doctor(int id_doctor, String nombre, String email, String telefono, String especialidad) {
         this.id_doctor = id_doctor;
         this.nombre = nombre;
@@ -26,6 +38,9 @@ public class Doctor {
         this.especialidad = especialidad;
     }
 
+    // A continuación se enlistan los getter y setters del objeto Doctor para
+    // cada uno de sus atributos
+    
     public int getId_doctor() {
         return id_doctor;
     }
